@@ -43,7 +43,11 @@ impl eframe::App for Website {
             ui.heading("My Packages");
             ui.separator();
             for man in self.env.packages(|p| p.manifests().clone()) {
-                ui.label(man.title());
+                if ui.button(man.title()).clicked() {
+                    if !self.env.packages_mut(|p| p.load(man.title())) {
+                        println!("ERROR: Failed to load package \"{}\"", man.title());
+                    }
+                }
             }
         });
     }

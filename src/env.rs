@@ -42,6 +42,8 @@ struct EnvironmentImpl {
 pub struct Packages {
     /// Manifests loaded into memory.
     manifests: Vec<Manifest>,
+    /// Package objects loaded into memory.
+    loaded: Vec<Box<dyn Package>>,
 }
 
 impl Default for Packages {
@@ -50,7 +52,8 @@ impl Default for Packages {
             manifests: vec![
                 calculator_manifest(),
                 manual_manifest(),
-            ]
+            ],
+            loaded: vec![],
         }
     }
 }
@@ -58,6 +61,15 @@ impl Default for Packages {
 impl Packages {
     pub fn manifests(&self) -> &Vec<Manifest> {
         &self.manifests
+    }
+
+    pub fn load(&mut self, pkg_name: &str) -> bool {
+        if let Some(manifest) = self.manifests.iter().find(|m| m.name == pkg_name) {
+            self.loaded.push((manifest.load_fn)());
+            return true;
+        }
+
+        false
     }
 }
 
@@ -67,6 +79,7 @@ impl Packages {
 #[derive(Clone)]
 pub struct Manifest {
     name: &'static str, // All manifests are hard-coded.
+    load_fn: fn() -> Box<dyn Package>,
 }
 
 impl Manifest {
@@ -75,10 +88,31 @@ impl Manifest {
     }
 }
 
+struct Calculator;
+
+impl Package for Calculator {}
+
 fn calculator_manifest() -> Manifest {
-    Manifest { name: "Calculator" }
+    Manifest { name: "Calculator", load_fn: load_calculator }
 }
 
-fn manual_manifest() -> Manifest {
-    Manifest { name: "Manual" }
+fn load_calculator() -> Box<dyn Package> {
+    Box::new(Calculator)
 }
+
+struct Manual;
+
+impl Package for Manual {}
+
+fn manual_manifest() -> Manifest {
+    Manifest { name: "Manual", load_fn: load_manual }
+}
+
+fn load_manual() -> Box<dyn Package> {
+    Box::new(Manual)
+}
+
+
+
+/// A package object.
+pub trait Package {}
