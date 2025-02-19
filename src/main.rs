@@ -1,7 +1,10 @@
 
 
 
+mod env;
+
 use eframe::egui;
+use env::Environment;
 
 
 
@@ -17,7 +20,9 @@ fn main() {
 
 
 
-struct Website;
+struct Website {
+    env: Environment,
+}
 
 impl Website {
     pub fn new(cc: &eframe::CreationContext) -> Self {
@@ -26,7 +31,9 @@ impl Website {
         visuals.interact_cursor = Some(egui::CursorIcon::PointingHand);
         cc.egui_ctx.set_visuals(visuals);
 
-        Self {}
+        Self {
+            env: Environment::default(),
+        }
     }
 }
 
