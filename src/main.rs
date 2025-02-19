@@ -44,8 +44,8 @@ impl eframe::App for Website {
             ui.separator();
             for man in self.env.packages(|p| p.manifests().clone()) {
                 if ui.button(man.title()).clicked() {
-                    if !self.env.packages_mut(|p| p.load(man.title())) {
-                        println!("ERROR: Failed to load package \"{}\"", man.title());
+                    if !self.env.packages_mut(|p| p.exec(man.title())) {
+                        println!("ERROR: Failed to execute package \"{}\"", man.title());
                     }
                 }
             }

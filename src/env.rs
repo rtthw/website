@@ -43,7 +43,7 @@ pub struct Packages {
     /// Manifests loaded into memory.
     manifests: Vec<Manifest>,
     /// Package objects loaded into memory.
-    loaded: Vec<Box<dyn Package>>,
+    running: Vec<Box<dyn Package>>,
 }
 
 impl Default for Packages {
@@ -53,7 +53,7 @@ impl Default for Packages {
                 calculator_manifest(),
                 manual_manifest(),
             ],
-            loaded: vec![],
+            running: vec![],
         }
     }
 }
@@ -63,9 +63,9 @@ impl Packages {
         &self.manifests
     }
 
-    pub fn load(&mut self, pkg_name: &str) -> bool {
+    pub fn exec(&mut self, pkg_name: &str) -> bool {
         if let Some(manifest) = self.manifests.iter().find(|m| m.name == pkg_name) {
-            self.loaded.push((manifest.load_fn)());
+            self.running.push((manifest.exec_fn)());
             return true;
         }
 
@@ -79,7 +79,7 @@ impl Packages {
 #[derive(Clone)]
 pub struct Manifest {
     name: &'static str, // All manifests are hard-coded.
-    load_fn: fn() -> Box<dyn Package>,
+    exec_fn: fn() -> Box<dyn Package>,
 }
 
 impl Manifest {
@@ -93,10 +93,11 @@ struct Calculator;
 impl Package for Calculator {}
 
 fn calculator_manifest() -> Manifest {
-    Manifest { name: "Calculator", load_fn: load_calculator }
+    Manifest { name: "Calculator", exec_fn: exec_calculator }
 }
 
-fn load_calculator() -> Box<dyn Package> {
+fn exec_calculator() -> Box<dyn Package> {
+    println!("Starting calculator...");
     Box::new(Calculator)
 }
 
@@ -105,10 +106,11 @@ struct Manual;
 impl Package for Manual {}
 
 fn manual_manifest() -> Manifest {
-    Manifest { name: "Manual", load_fn: load_manual }
+    Manifest { name: "Manual", exec_fn: exec_manual }
 }
 
-fn load_manual() -> Box<dyn Package> {
+fn exec_manual() -> Box<dyn Package> {
+    println!("Starting manual...");
     Box::new(Manual)
 }
 
