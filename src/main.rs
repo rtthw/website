@@ -40,9 +40,11 @@ impl Website {
 impl eframe::App for Website {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| {
-                ui.heading("TODO");
-            });
+            ui.heading("My Packages");
+            ui.separator();
+            for man in self.env.packages(|p| p.manifests().clone()) {
+                ui.label(man.title());
+            }
         });
     }
 }
