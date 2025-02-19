@@ -8,7 +8,7 @@ pub struct Environment(std::sync::Arc<parking_lot::RwLock<EnvironmentImpl>>);
 impl Default for Environment {
     fn default() -> Self {
         Self(std::sync::Arc::new(parking_lot::RwLock::new(EnvironmentImpl {
-            packages: Packages::default(),
+            windows: WindowManager,
         })))
     }
 }
@@ -24,18 +24,22 @@ impl Environment {
 }
 
 impl Environment {
-    pub fn packages<R>(&self, reader: impl FnOnce(&Packages) -> R) -> R {
-        self.read(move |env| reader(&env.packages))
+    pub fn windows<R>(&self, reader: impl FnOnce(&WindowManager) -> R) -> R {
+        self.read(move |env| reader(&env.windows))
     }
 
-    pub fn packages_mut<R>(&self, reader: impl FnOnce(&mut Packages) -> R) -> R {
-        self.write(move |env| reader(&mut env.packages))
+    pub fn windows_mut<R>(&self, reader: impl FnOnce(&mut WindowManager) -> R) -> R {
+        self.write(move |env| reader(&mut env.windows))
     }
 }
 
 struct EnvironmentImpl {
-    packages: Packages,
+    windows: WindowManager,
 }
+
+
+
+pub struct WindowManager;
 
 
 

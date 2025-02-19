@@ -4,7 +4,7 @@
 mod env;
 
 use eframe::egui;
-use env::Environment;
+use env::{Environment, Packages};
 
 
 
@@ -22,6 +22,7 @@ fn main() {
 
 struct Website {
     env: Environment,
+    packages: Packages,
 }
 
 impl Website {
@@ -33,6 +34,7 @@ impl Website {
 
         Self {
             env: Environment::default(),
+            packages: Packages::default(),
         }
     }
 }
@@ -42,9 +44,9 @@ impl eframe::App for Website {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My Packages");
             ui.separator();
-            for man in self.env.packages(|p| p.manifests().clone()) {
+            for man in self.packages.manifests().clone() {
                 if ui.button(man.title()).clicked() {
-                    if !self.env.packages_mut(|p| p.exec(man.title())) {
+                    if !self.packages.exec(man.title()) {
                         println!("ERROR: Failed to execute package \"{}\"", man.title());
                     }
                 }
