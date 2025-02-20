@@ -82,11 +82,10 @@ impl Packages {
         &self.manifests
     }
 
-    pub fn exec(&mut self, pkg_name: &str) -> bool {
+    pub fn exec(&mut self, env: &mut Environment, pkg_name: &str) -> bool {
         if let Some(manifest) = self.manifests.iter().find(|m| m.name == pkg_name) {
             self.running.push(PackageRuntime {
-                pkg: (manifest.exec_fn)(),
-                initialized: false,
+                pkg: (manifest.exec_fn)(env),
             });
             return true;
         }
@@ -97,7 +96,6 @@ impl Packages {
 
 struct PackageRuntime {
     pkg: Box<dyn Package>,
-    initialized: bool,
 }
 
 
@@ -106,7 +104,7 @@ struct PackageRuntime {
 #[derive(Clone)]
 pub struct Manifest {
     name: &'static str, // All manifests are hard-coded.
-    exec_fn: fn() -> Box<dyn Package>,
+    exec_fn: fn(&mut Environment) -> Box<dyn Package>,
 }
 
 impl Manifest {
@@ -115,47 +113,41 @@ impl Manifest {
     }
 }
 
+
+
+/// A package object.
+pub trait Package {}
+
+
+
 struct Calculator {
-    window: Option<u32>,
+    window: u32,
 }
 
-impl Package for Calculator {
-    fn init(&mut self, env: &Environment) {
-        self.window = env.create_window("Calculator", WindowType::Normal);
-    }
-}
+impl Package for Calculator {}
 
 fn calculator_manifest() -> Manifest {
     Manifest { name: "Calculator", exec_fn: exec_calculator }
 }
 
-fn exec_calculator() -> Box<dyn Package> {
+fn exec_calculator(env: &mut Environment) -> Box<dyn Package> {
     println!("Starting calculator...");
-    Box::new(Calculator { window: None })
+    let window = env.create_window("Calculator", WindowType::Normal).unwrap();
+    Box::new(Calculator { window })
 }
 
 struct Manual {
-    window: Option<u32>,
+    window: u32,
 }
 
-impl Package for Manual {
-    fn init(&mut self, env: &Environment) {
-        self.window = env.create_window("Documentation", WindowType::Normal);
-    }
-}
+impl Package for Manual {}
 
 fn manual_manifest() -> Manifest {
     Manifest { name: "Manual", exec_fn: exec_manual }
 }
 
-fn exec_manual() -> Box<dyn Package> {
+fn exec_manual(env: &mut Environment) -> Box<dyn Package> {
     println!("Starting manual...");
-    Box::new(Manual { window: None })
-}
-
-
-
-/// A package object.
-pub trait Package {
-    fn init(&mut self, env: &Environment);
+    let window = env.create_window("Manual", WindowType::Normal).unwrap();
+    Box::new(Manual { window })
 }

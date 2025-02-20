@@ -49,7 +49,7 @@ impl eframe::App for Website {
             ui.separator();
             for man in self.packages.manifests().clone() {
                 if ui.button(man.title()).clicked() {
-                    if !self.packages.exec(man.title()) {
+                    if !self.packages.exec(&mut self.env, man.title()) {
                         println!("ERROR: Failed to execute package \"{}\"", man.title());
                     }
                 }
