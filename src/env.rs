@@ -8,7 +8,7 @@ pub struct Environment(std::sync::Arc<parking_lot::RwLock<EnvironmentImpl>>);
 impl Default for Environment {
     fn default() -> Self {
         Self(std::sync::Arc::new(parking_lot::RwLock::new(EnvironmentImpl {
-            windows: WindowManager,
+            window_manager: WindowManager,
         })))
     }
 }
@@ -23,23 +23,38 @@ impl Environment {
     }
 }
 
+// Host-facing.
 impl Environment {
     pub fn windows<R>(&self, reader: impl FnOnce(&WindowManager) -> R) -> R {
-        self.read(move |env| reader(&env.windows))
+        self.read(move |env| reader(&env.window_manager))
     }
 
     pub fn windows_mut<R>(&self, reader: impl FnOnce(&mut WindowManager) -> R) -> R {
-        self.write(move |env| reader(&mut env.windows))
+        self.write(move |env| reader(&mut env.window_manager))
+    }
+}
+
+// Package-facing.
+impl Environment {
+    pub fn create_window(&self, title: &str, ty: WindowType) -> Option<u32> {
+        None
     }
 }
 
 struct EnvironmentImpl {
-    windows: WindowManager,
+    window_manager: WindowManager,
 }
 
 
 
 pub struct WindowManager;
+
+#[derive(Default)]
+pub enum WindowType {
+    #[default]
+    Normal,
+    Popup,
+}
 
 
 
@@ -47,7 +62,7 @@ pub struct Packages {
     /// Manifests loaded into memory.
     manifests: Vec<Manifest>,
     /// Package objects loaded into memory.
-    running: Vec<Box<dyn Package>>,
+    running: Vec<PackageRuntime>,
 }
 
 impl Default for Packages {
@@ -69,12 +84,20 @@ impl Packages {
 
     pub fn exec(&mut self, pkg_name: &str) -> bool {
         if let Some(manifest) = self.manifests.iter().find(|m| m.name == pkg_name) {
-            self.running.push((manifest.exec_fn)());
+            self.running.push(PackageRuntime {
+                pkg: (manifest.exec_fn)(),
+                initialized: false,
+            });
             return true;
         }
 
         false
     }
+}
+
+struct PackageRuntime {
+    pkg: Box<dyn Package>,
+    initialized: bool,
 }
 
 
@@ -92,9 +115,15 @@ impl Manifest {
     }
 }
 
-struct Calculator;
+struct Calculator {
+    window: Option<u32>,
+}
 
-impl Package for Calculator {}
+impl Package for Calculator {
+    fn init(&mut self, env: &Environment) {
+        self.window = env.create_window("Calculator", WindowType::Normal);
+    }
+}
 
 fn calculator_manifest() -> Manifest {
     Manifest { name: "Calculator", exec_fn: exec_calculator }
@@ -102,12 +131,18 @@ fn calculator_manifest() -> Manifest {
 
 fn exec_calculator() -> Box<dyn Package> {
     println!("Starting calculator...");
-    Box::new(Calculator)
+    Box::new(Calculator { window: None })
 }
 
-struct Manual;
+struct Manual {
+    window: Option<u32>,
+}
 
-impl Package for Manual {}
+impl Package for Manual {
+    fn init(&mut self, env: &Environment) {
+        self.window = env.create_window("Documentation", WindowType::Normal);
+    }
+}
 
 fn manual_manifest() -> Manifest {
     Manifest { name: "Manual", exec_fn: exec_manual }
@@ -115,10 +150,12 @@ fn manual_manifest() -> Manifest {
 
 fn exec_manual() -> Box<dyn Package> {
     println!("Starting manual...");
-    Box::new(Manual)
+    Box::new(Manual { window: None })
 }
 
 
 
 /// A package object.
-pub trait Package {}
+pub trait Package {
+    fn init(&mut self, env: &Environment);
+}

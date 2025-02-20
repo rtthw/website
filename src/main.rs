@@ -41,6 +41,9 @@ impl Website {
 
 impl eframe::App for Website {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.env.windows_mut(|wm| {
+
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My Packages");
             ui.separator();
