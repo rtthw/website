@@ -87,11 +87,19 @@ impl eframe::App for Program {
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(doc) = self.current.as_ref()
-                .and_then(|p| self.corpus.iter_mut().find(|d| &d.path == p))
-            {
-                doc.update(ui);
-            }
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                if let Some(doc) = self.current.as_ref()
+                    .and_then(|p| self.corpus.iter_mut().find(|d| &d.path == p))
+                {
+                    doc.update(ui);
+                } else {
+                    // TODO: Maybe some sort of home screen?
+                    ui.centered_and_justified(|ui| {
+                        ui.weak("Nothing here...");
+                    });
+                }
+            });
         });
     }
 }
@@ -192,6 +200,14 @@ impl Buffer {
     }
 
     pub fn update(&mut self, ui: &mut egui::Ui) {
-        ui.text_edit_multiline(&mut self.content);
+        let font_id = egui::FontId::monospace(17.0);
+        let row_height = ui.fonts(|f| f.row_height(&font_id));
+        let desired_rows = (ui.available_height() / row_height).ceil() as usize;
+
+        ui.add(egui::TextEdit::multiline(&mut self.content)
+            .font(font_id)
+            .desired_width(ui.available_width())
+            .desired_rows(desired_rows)
+            .code_editor());
     }
 }
