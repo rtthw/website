@@ -1,7 +1,7 @@
 
 
 
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, sync::Arc};
 
 use anyhow::Result;
 use eframe::egui;
@@ -185,6 +185,10 @@ pub enum DocumentState {
 
 pub struct Buffer {
     content: String,
+    galley: Option<Arc<egui::Galley>>,
+    edited: bool,
+    last_edit_time: f64,
+    should_parse: bool,
 }
 
 impl Buffer {
@@ -196,18 +200,61 @@ impl Buffer {
 
         Ok(Self {
             content,
+            galley: None, // TODO: `BufferState`?
+            edited: false,
+            last_edit_time: 0.0,
+            should_parse: true,
         })
     }
 
     pub fn update(&mut self, ui: &mut egui::Ui) {
         let font_id = egui::FontId::monospace(17.0);
+        let base_color = egui::Color32::from_rgb(0xb7, 0xb7, 0xc0);
         let row_height = ui.fonts(|f| f.row_height(&font_id));
         let desired_rows = (ui.available_height() / row_height).ceil() as usize;
 
-        ui.add(egui::TextEdit::multiline(&mut self.content)
-            .font(font_id)
+        let mut layouter = |ui: &egui::Ui, text: &str, wrap_width: f32| {
+            if self.should_parse {
+                // Somehow this gets past the borrow checker.
+                self.should_parse = false;
+                do_layout(ui, text, wrap_width)
+            } else {
+                self.galley.clone().unwrap_or_else(|| {
+                    ui.fonts(|f| {
+                        let font_id = egui::FontId::monospace(17.0);
+                        f.layout(text.to_string(), font_id, base_color, wrap_width)
+                    })
+                })
+            }
+        };
+
+        let output = egui::TextEdit::multiline(&mut self.content)
+            // .font(font_id)
             .desired_width(ui.available_width())
             .desired_rows(desired_rows)
-            .code_editor());
+            .code_editor()
+            .layouter(&mut layouter)
+            .show(ui);
+
+        let now = ui.input(|i| i.time);
+        if output.response.changed() {
+            self.edited = true; // TODO: Saving.
+            self.last_edit_time = now;
+        }
+        let time_since_last_edit = now - self.last_edit_time;
+        if self.edited && time_since_last_edit > 2.0 {
+            // See `layouter` above. This will force a reparse there.
+            self.should_parse = true;
+            ui.ctx().request_repaint();
+        }
+
+        self.galley = Some(output.galley); // TODO: Keep?
     }
+}
+
+fn do_layout(ui: &egui::Ui, text: &str, wrap_width: f32) -> Arc<egui::Galley> {
+    let mut job = egui::text::LayoutJob::default();
+    job.wrap = egui::text::TextWrapping::wrap_at_width(wrap_width);
+
+    ui.fonts(|f| f.layout_job(job))
 }
