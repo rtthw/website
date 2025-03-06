@@ -1,7 +1,7 @@
 
 
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use eframe::egui;
@@ -125,8 +125,7 @@ impl Document {
 
                 let path = self.path.clone();
                 std::thread::spawn(move || {
-                    let result = std::fs::read_to_string(path)
-                        .map_err(|e| anyhow::anyhow!("Could not read document: {e}"));
+                    let result = Buffer::load(&path);
                     let _ = send.send(result);
                 });
 
@@ -135,7 +134,7 @@ impl Document {
             Some(DocumentState::Loading { recv }) => {
                 Some(if let Ok(result) = recv.try_recv() {
                     match result {
-                        Ok(content) => DocumentState::Loaded { content },
+                        Ok(content) => DocumentState::Loaded { buffer: content },
                         Err(error) => DocumentState::Error { message: error.to_string() },
                     }
                 } else {
@@ -143,9 +142,9 @@ impl Document {
                     DocumentState::Loading { recv }
                 })
             }
-            Some(DocumentState::Loaded { mut content }) => {
-                self.render_content(ui, &mut content);
-                Some(DocumentState::Loaded { content })
+            Some(DocumentState::Loaded { mut buffer }) => {
+                buffer.update(ui);
+                Some(DocumentState::Loaded { buffer })
             }
             Some(DocumentState::Error { message }) => {
                 let mut next_state = Some(DocumentState::Error { message: message.clone() });
@@ -160,20 +159,39 @@ impl Document {
             }
         };
     }
-
-    fn render_content(&mut self, ui: &mut egui::Ui, content: &mut String) {
-        ui.text_edit_multiline(content);
-    }
 }
 
 pub enum DocumentState {
     Loading {
-        recv: std::sync::mpsc::Receiver<Result<String>>,
+        recv: std::sync::mpsc::Receiver<Result<Buffer>>,
     },
     Loaded {
-        content: String,
+        buffer: Buffer,
     },
     Error {
         message: String,
     },
+}
+
+
+
+pub struct Buffer {
+    content: String,
+}
+
+impl Buffer {
+    pub fn load(path: &Path) -> Result<Self> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| {
+                anyhow::anyhow!("Could not read contents for document \"{}\": {e}", path.display())
+            })?;
+
+        Ok(Self {
+            content,
+        })
+    }
+
+    pub fn update(&mut self, ui: &mut egui::Ui) {
+        ui.text_edit_multiline(&mut self.content);
+    }
 }
