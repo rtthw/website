@@ -1,13 +1,23 @@
 
 
 
+use std::path::PathBuf;
+
+use anyhow::Result;
 use eframe::egui;
 
 
 
-fn main() {
+fn main() -> Result<()> {
+    let corpus_path = std::env::current_dir()?.join("test");
+    let mut corpus = vec![];
+    for e in std::fs::read_dir(&corpus_path)? {
+        let entry = e?;
+        corpus.push(Document::new_unloaded(entry.path()));
+    }
+
     eframe::run_native(
-        "Matthew Norman",
+        "My Website Manager",
         eframe::NativeOptions {
             viewport: egui::ViewportBuilder {
                 inner_size: Some([1200.0, 800.0].into()),
@@ -15,16 +25,20 @@ fn main() {
             },
             ..Default::default()
         },
-        Box::new(move |cc| Ok(Box::new(Program::new(cc)))),
+        Box::new(move |cc| Ok(Box::new(Program::new(cc, corpus)))),
     ).unwrap();
+
+    Ok(())
 }
 
 
 
-struct Program {}
+struct Program {
+    corpus: Vec<Document>,
+}
 
 impl Program {
-    fn new(cc: &eframe::CreationContext) -> Self {
+    fn new(cc: &eframe::CreationContext, corpus: Vec<Document>) -> Self {
         let mut visuals = egui::Visuals::dark();
         visuals.button_frame = false;
         visuals.interact_cursor = Some(egui::CursorIcon::PointingHand);
@@ -45,7 +59,9 @@ impl Program {
             ].into();
         });
 
-        Self {}
+        Self {
+            corpus,
+        }
     }
 }
 
@@ -57,4 +73,24 @@ impl eframe::App for Program {
             });
         });
     }
+}
+
+
+
+pub struct Document {
+    path: PathBuf,
+    state: Option<DocumentState>,
+}
+
+impl Document {
+    pub fn new_unloaded(path: impl Into<PathBuf>) -> Self {
+        Self {
+            path: path.into(),
+            state: Some(DocumentState::Unloaded),
+        }
+    }
+}
+
+pub enum DocumentState {
+    Unloaded,
 }
