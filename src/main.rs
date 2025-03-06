@@ -35,6 +35,7 @@ fn main() -> Result<()> {
 
 struct Program {
     corpus: Vec<Document>,
+    current: Option<PathBuf>,
 }
 
 impl Program {
@@ -61,6 +62,7 @@ impl Program {
 
         Self {
             corpus,
+            current: None,
         }
     }
 }
@@ -73,7 +75,7 @@ impl eframe::App for Program {
                 for doc in &mut self.corpus[row_range] {
                     ui.horizontal_centered(|ui| {
                         if ui.link(&doc.title).clicked() {
-                            println!("TODO: Open documents");
+                            self.current = Some(doc.path.clone());
                         }
                         ui.add(egui::Label::new(egui::RichText::new(
                             doc.path.file_name().unwrap().to_string_lossy())
@@ -85,9 +87,11 @@ impl eframe::App for Program {
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| {
-                ui.heading("TODO");
-            });
+            if let Some(doc) = self.current.as_ref()
+                .and_then(|p| self.corpus.iter_mut().find(|d| &d.path == p))
+            {
+                doc.update(ui);
+            }
         });
     }
 }
@@ -108,11 +112,68 @@ impl Document {
         Self {
             path,
             title,
-            state: Some(DocumentState::Unloaded),
+            state: None,
         }
     }
 }
 
+impl Document {
+    pub fn update(&mut self, ui: &mut egui::Ui) {
+        self.state = match self.state.take() {
+            None => {
+                let (send, recv) = std::sync::mpsc::channel();
+
+                let path = self.path.clone();
+                std::thread::spawn(move || {
+                    let result = std::fs::read_to_string(path)
+                        .map_err(|e| anyhow::anyhow!("Could not read document: {e}"));
+                    let _ = send.send(result);
+                });
+
+                Some(DocumentState::Loading { recv })
+            }
+            Some(DocumentState::Loading { recv }) => {
+                Some(if let Ok(result) = recv.try_recv() {
+                    match result {
+                        Ok(content) => DocumentState::Loaded { content },
+                        Err(error) => DocumentState::Error { message: error.to_string() },
+                    }
+                } else {
+                    ui.centered_and_justified(|ui| ui.spinner());
+                    DocumentState::Loading { recv }
+                })
+            }
+            Some(DocumentState::Loaded { mut content }) => {
+                self.render_content(ui, &mut content);
+                Some(DocumentState::Loaded { content })
+            }
+            Some(DocumentState::Error { message }) => {
+                let mut next_state = Some(DocumentState::Error { message: message.clone() });
+                ui.vertical_centered(|ui| {
+                    ui.heading("ERROR");
+                    ui.label(&message);
+                    if ui.button("Retry").clicked() {
+                        next_state = None;
+                    }
+                });
+                next_state
+            }
+        };
+    }
+
+    fn render_content(&mut self, ui: &mut egui::Ui, content: &mut String) {
+        ui.text_edit_multiline(content);
+    }
+}
+
 pub enum DocumentState {
-    Unloaded,
+    Loading {
+        recv: std::sync::mpsc::Receiver<Result<String>>,
+    },
+    Loaded {
+        content: String,
+    },
+    Error {
+        message: String,
+    },
 }
