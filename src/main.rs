@@ -67,6 +67,23 @@ impl Program {
 
 impl eframe::App for Program {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::SidePanel::left("corpus-list").show(ctx, |ui| {
+            egui::ScrollArea::vertical().show_rows(ui, 31.0, self.corpus.len(), |ui, row_range| {
+                ui.set_width(ui.available_width());
+                for doc in &mut self.corpus[row_range] {
+                    ui.horizontal_centered(|ui| {
+                        if ui.link(&doc.title).clicked() {
+                            println!("TODO: Open documents");
+                        }
+                        ui.add(egui::Label::new(egui::RichText::new(
+                            doc.path.file_name().unwrap().to_string_lossy())
+                                .weak()
+                                .small())
+                            .truncate());
+                    });
+                }
+            });
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
                 ui.heading("TODO");
@@ -79,13 +96,18 @@ impl eframe::App for Program {
 
 pub struct Document {
     path: PathBuf,
+    title: String,
     state: Option<DocumentState>,
 }
 
 impl Document {
     pub fn new_unloaded(path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        let title = path.file_name().unwrap().to_string_lossy().to_string();
+
         Self {
-            path: path.into(),
+            path,
+            title,
             state: Some(DocumentState::Unloaded),
         }
     }
