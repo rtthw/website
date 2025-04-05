@@ -4,6 +4,3 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-eframe = "0.31"
-pulldown-cmark = "0.13"
