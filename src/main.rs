@@ -14,10 +14,10 @@ fn main() {
 
 fn start_app() {
     let document = document();
+    let location = document.location().unwrap();
     let body = body(&document);
-    let text_node = document.create_text_node("Testing, testing...");
-    body.append_child(text_node.as_ref())
-        .expect("failed to append text");
+    let text_node = document.create_text_node(&location.pathname().unwrap());
+    body.append_child(text_node.as_ref()).expect("failed to append text");
 }
 
 #[wasm_bindgen]

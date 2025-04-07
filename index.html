@@ -9,21 +9,7 @@
         <base data-trunk-public-url />
     </head>
     <body>
-        <button onclick="window.wasmBindings.wasm_ffi()">Something</button>
+        <button onmousedown="window.wasmBindings.wasm_ffi()">Something</button>
         <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="website" />
     </body>
-
-    <script type="module">
-        addEventListener("TrunkApplicationStarted", (event) => {
-            console.log(
-                "application started - bindings:",
-                window.wasmBindings,
-                "WASM:",
-                event.detail.wasm,
-            );
-            // window.wasmBindings.wasm_ffi();
-            // You can also run this via the WASM instance in the details
-            // event.detail.wasm.wasm_ffi();
-        });
-    </script>
 </html>
