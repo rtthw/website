@@ -3,27 +3,47 @@
     <head>
         <title>Matthew Norman</title>
         <link rel="icon" type="image/png" href="favicon.png" />
-        <link rel="stylesheet" href="reset.css" />
         <link rel="stylesheet" href="main.css" />
     </head>
     <body>
-        <button class="logo"></button>
-        <h1 id="title">Matthew Norman</h1>
-        <p>TODO: Write introduction.</p>
-        <br />
-        <hr />
-        <br />
-        <h2 id="socials">Links</h2>
-        <p>Links to various things.</p>
-        <ul>
-            <li>
-                <a href="https://github.com/rtthw">GitHub/rtthw</a> &mdash; My personal GitHub
-                account.
-            </li>
-        </ul>
-        <br />
-        <hr />
-        <br />
-        <small>&copy 2025 Matthew Norman</small>
+        <div class="layout">
+            <header class="header layout__header">
+                <div class="header__content">
+                    <div class="header__left-block">
+                        <a class="header__logo header-menu__link" href="/"
+                            ><span>Matthew Norman</span></a
+                        >
+                    </div>
+                    <nav class="header-menu" role="navigation">
+                        <div class="header-menu__content">
+                            <ul class="header-menu__menu">
+                                <li class="header-menu__entry">
+                                    <a class="header-menu__link" href="/about/"
+                                        ><span>About</span></a
+                                    >
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+            <main>
+                <div class="container">
+                    <div class="content">
+                        <p>TODO: Write introduction.</p>
+                        <h2 id="links">Links</h2>
+                        <p>Links to various things.</p>
+                        <ul>
+                            <li>
+                                <a href="https://github.com/rtthw">GitHub/rtthw</a> &mdash; My
+                                personal GitHub account.
+                            </li>
+                        </ul>
+                        <br />
+                        <small>&copy 2025 Matthew Norman</small>
+                    </div>
+                </div>
+            </main>
+        </div>
     </body>
 </html>
